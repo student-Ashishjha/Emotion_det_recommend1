@@ -7,14 +7,15 @@ export default function Footer({ darkMode = false }) {
   const [activeModal, setActiveModal] = useState(null)
 
   // New footer color: teal to orange gradient
-  const footerStyle = {
-    marginTop: '0',
-    padding: '0',
-    background: 'linear-gradient(200deg, #16e9b6 0%, #yyb74d 90%)',
-    color: '#222222',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    position: 'relative'
-  }
+const footerStyle = {
+  marginTop: '0',
+  padding: '0',
+  background: 'linear-gradient(200deg, #a17ee6 0%, #6a44e0 90%)',
+  color: '#ffffff',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  position: 'relative'
+};
+
 
   const mainSectionStyle = {
     padding: '30px 20px',
