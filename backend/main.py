@@ -92,68 +92,31 @@ def preprocess_face(face_img):
 
 def detect_faces_and_emotions(image_cv):
     """Detect faces and predict emotions"""
-    if model is None or face_cascade is None:
-        logger.error("Model or face cascade not loaded")
+    if model is None:
+        logger.error("Model not loaded")
         return []
-    
     try:
-        # Convert to grayscale for face detection
         gray = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
-        
-        # Detect faces with optimized parameters
-        faces = face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(50, 50),
-            flags=cv2.CASCADE_SCALE_IMAGE
-        )
-        
+        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5)
         results = []
-        
         for (x, y, w, h) in faces:
-            # Filter out very small faces
-            if w < 60 or h < 60:
-                continue
-            
-            # Extract face region with some padding
-            padding = 10
-            x1 = max(0, x - padding)
-            y1 = max(0, y - padding)
-            x2 = min(image_cv.shape[1], x + w + padding)
-            y2 = min(image_cv.shape[0], y + h + padding)
-            
-            face_img = image_cv[y1:y2, x1:x2]
-            
-            # Preprocess face for emotion prediction
-            processed_face = preprocess_face(face_img)
-            
-            if processed_face is not None:
-                # Predict emotion
-                preds = model.predict(processed_face, verbose=0)
-                emotion_idx = np.argmax(preds)
-                emotion_label = EMOTION_LABELS[emotion_idx]
-                confidence = float(preds[0][emotion_idx])
-                
-                # Only include predictions with reasonable confidence
-                if confidence > 0.3:  # Lowered threshold for better detection
-                    results.append({
-                        "box": {
-                            "x": int(x),
-                            "y": int(y),
-                            "w": int(w),
-                            "h": int(h)
-                        },
-                        "emotion": emotion_label,
-                        "confidence": round(confidence, 3),
-                        "all_predictions": {
-                            label: round(float(preds[0][i]), 3) 
-                            for i, label in enumerate(EMOTION_LABELS)
-                        }
-                    })
-        
+            face_img = image_cv[y:y+h, x:x+w]
+            face_img = cv2.resize(face_img, (48, 48))
+            face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            face_img = face_img.astype('float32') / 255.0
+            face_img = np.expand_dims(face_img, axis=-1)
+            face_img = np.expand_dims(face_img, axis=0)
+            preds = model.predict(face_img)
+            emotion_idx = np.argmax(preds)
+            emotion_label = EMOTION_LABELS[emotion_idx]
+            confidence = float(preds[0][emotion_idx])
+            results.append({
+                "box": {"x": int(x), "y": int(y), "w": int(w), "h": int(h)},
+                "emotion": emotion_label,
+                "confidence": confidence
+            })
         return results
-    
     except Exception as e:
         logger.error(f"Error in face detection and emotion prediction: {e}")
         return []
@@ -187,32 +150,26 @@ async def upload_image(file: UploadFile = File(...)):
 async def detect_emotion(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         return JSONResponse(status_code=400, content={"message": "File is not an image."})
-    
     if model is None:
         raise HTTPException(status_code=500, detail="Model not loaded")
-    
-    # Save uploaded file temporarily
     file_location = os.path.join(UPLOAD_DIR, file.filename)
     try:
         with open(file_location, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
-        # Load and process image
         image_cv = cv2.imread(file_location)
         if image_cv is None:
-            return JSONResponse(status_code=400, content={"message": "Failed to read image."})
-        
-        # Detect faces and emotions
+            return JSONResponse(status_code=400, content={"message": "Failed to read image with OpenCV."})
         results = detect_faces_and_emotions(image_cv)
-        
-        # Clean up temporary file
-        try:
-            os.remove(file_location)
-        except:
-            pass
-        
-        return {"faces": results, "total_faces": len(results)}
-    
+        if results:
+            best_face = max(results, key=lambda x: x['confidence'])
+            final_result = [best_face]
+        else:
+            final_result = [{
+                "box": None,
+                "emotion": "Neutral",
+                "confidence": 1.0
+            }]
+        return {"faces": final_result}
     except Exception as e:
         logger.error(f"Error processing image: {e}")
         return JSONResponse(status_code=500, content={"message": f"Error processing image: {e}"})

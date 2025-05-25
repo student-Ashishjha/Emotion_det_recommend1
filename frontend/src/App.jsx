@@ -5,6 +5,7 @@ import TabNavigation from './components/TabNavigation'
 import UploadTab from './components/UploadTab'
 import RealTimeTab from './components/RealTimeTab'
 import HistoryTab from './components/HistoryTab'
+import Footer from './components/Footer'
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null)
@@ -65,6 +66,7 @@ function App() {
           />
         )}
       </div>
+      <Footer />
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }

@@ -323,44 +323,45 @@ export default function RealTimeTab({ darkMode, confidence, emotionResult, setEm
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Live results display */}
-          {smoothedResults && smoothedResults.faces && smoothedResults.faces.length > 0 && (
-            <div>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px', margin: '0 0 12px 0' }}>
-                Live Detection Results
-              </h3>
-              {smoothedResults.faces.map((face, index) => (
-                <div key={index} style={{
+          {smoothedResults && smoothedResults.faces && smoothedResults.faces.length > 0 && (() => {
+            const bestFace = smoothedResults.faces.reduce((prev, current) => (prev.confidence > current.confidence) ? prev : current);
+            return (
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px', margin: '0 0 12px 0' }}>
+                  Live Detection Result
+                </h3>
+                <div style={{
                   padding: '12px',
                   borderRadius: '8px',
                   background: darkMode ? 'rgba(55, 65, 81, 0.5)' : '#f9fafb',
                   marginBottom: '8px',
-                  border: `2px solid ${getEmotionColor(face.emotion)}`
+                  border: `2px solid ${getEmotionColor(bestFace.emotion)}`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ 
                       fontWeight: '600', 
                       fontSize: '16px',
-                      color: getEmotionColor(face.emotion),
+                      color: getEmotionColor(bestFace.emotion),
                       textTransform: 'capitalize'
                     }}>
-                      {face.emotion}
+                      {bestFace.emotion}
                     </span>
                     <span style={{ 
                       fontSize: '14px', 
                       color: '#6b7280',
-                      background: face.confidence > 0.8 ? '#10b981' : face.confidence > 0.6 ? '#f59e0b' : '#ef4444',
+                      background: bestFace.confidence > 0.8 ? '#10b981' : bestFace.confidence > 0.6 ? '#f59e0b' : '#ef4444',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
                       fontSize: '12px'
                     }}>
-                      {(face.confidence * 100).toFixed(1)}%
+                      {(bestFace.confidence * 100).toFixed(1)}%
                     </span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            );
+          })()}
           
           {capturing && (!smoothedResults || !smoothedResults.faces || smoothedResults.faces.length === 0) && (
             <div style={{
